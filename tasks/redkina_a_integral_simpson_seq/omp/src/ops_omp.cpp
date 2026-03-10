@@ -30,7 +30,7 @@ bool RedkinaAIntegralSimpsonOMP::ValidationImpl() {
   const auto &in = GetInput();
   size_t dim = in.a.size();
 
-  if (dim == 0 || in.n.size() != dim || in.b.size() != dim) {
+  if (dim == 0 || in.b.size() != dim || in.n.size() != dim) {
     return false;
   }
 
@@ -62,24 +62,32 @@ bool RedkinaAIntegralSimpsonOMP::PreProcessingImpl() {
 bool RedkinaAIntegralSimpsonOMP::RunImpl() {
   const size_t dim = a_.size();
 
+  /* локальные копии (обязательно для MSVC OpenMP) */
+  const auto a_l = a_;
+  const auto b_l = b_;
+  const auto n_l = n_;
+  const auto func_l = func_;
+
   std::vector<double> h(dim);
   for (size_t i = 0; i < dim; ++i) {
-    h[i] = (b_[i] - a_[i]) / static_cast<double>(n_[i]);
+    h[i] = (b_l[i] - a_l[i]) / static_cast<double>(n_l[i]);
   }
+
+  const auto h_l = h;
 
   double h_prod = 1.0;
   for (size_t i = 0; i < dim; ++i) {
-    h_prod *= h[i];
+    h_prod *= h_l[i];
   }
 
   long long total_points = 1;
   for (size_t i = 0; i < dim; ++i) {
-    total_points *= (static_cast<long long>(n_[i]) + 1);
+    total_points *= static_cast<long long>(n_l[i]) + 1;
   }
 
   double sum = 0.0;
 
-#pragma omp parallel for default(none) reduction(+ : sum) shared(total_points)
+#pragma omp parallel for default(none) reduction(+ : sum) shared(total_points, dim, a_l, n_l, h_l, func_l)
   for (long long linear_idx = 0; linear_idx < total_points; ++linear_idx) {
     std::vector<int> indices(dim);
     std::vector<double> point(dim);
@@ -88,17 +96,17 @@ bool RedkinaAIntegralSimpsonOMP::RunImpl() {
     double weight_prod = 1.0;
 
     for (int d = static_cast<int>(dim) - 1; d >= 0; --d) {
-      int size_d = n_[d] + 1;
+      int size_d = n_l[d] + 1;
       indices[d] = static_cast<int>(tmp % size_d);
       tmp /= size_d;
     }
 
     for (size_t d = 0; d < dim; ++d) {
-      point[d] = a_[d] + indices[d] * h[d];
-      weight_prod *= GetCoeff(indices[d], n_[d]);
+      point[d] = a_l[d] + indices[d] * h_l[d];
+      weight_prod *= GetCoeff(indices[d], n_l[d]);
     }
 
-    sum += weight_prod * func_(point);
+    sum += weight_prod * func_l(point);
   }
 
   double denominator = 1.0;
