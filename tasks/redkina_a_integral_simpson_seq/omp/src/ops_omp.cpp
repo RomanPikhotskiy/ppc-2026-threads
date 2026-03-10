@@ -37,14 +37,14 @@ bool AdvanceIndicesFromLevel(std::array<int, kMaxDim> &indices, const std::vecto
   return true;
 }
 
+// thread_local вектор – один на поток OpenMP
+thread_local std::vector<double> tls_point;
+
 }  // namespace
 
 RedkinaAIntegralSimpsonOMP::RedkinaAIntegralSimpsonOMP(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
-  // Инициализация OpenMP до начала тестов, чтобы выделения памяти произошли один раз
-  static const int dummy = omp_get_max_threads();
-  (void)dummy;
 }
 
 bool RedkinaAIntegralSimpsonOMP::ValidationImpl() {
@@ -111,28 +111,29 @@ bool RedkinaAIntegralSimpsonOMP::RunImpl() {
     double coeff0 = SimpsonCoeff(i0, static_cast<int>(n_ref[0]));
     double local_sum = 0.0;
 
-    // Точка хранится на стеке (std::array)
-    std::array<double, kMaxDim> point_arr{};
-    std::array<int, kMaxDim> indices{};
+    // Используем thread_local вектор для хранения точки
+    std::vector<double> &point = tls_point;
+    if (point.size() != dim_local) {
+      point.resize(dim_local);
+    }
 
+    std::array<int, kMaxDim> indices{};
     indices[0] = i0;
     for (size_t d = 1; d < dim_local; ++d) {
       indices[d] = 0;
     }
 
     do {
-      point_arr[0] = a_ref[0] + static_cast<double>(i0) * h_ref[0];
+      point[0] = a_ref[0] + static_cast<double>(i0) * h_ref[0];
 
       double w_prod = 1.0;
       for (size_t d = 1; d < dim_local; ++d) {
         int idx = indices[d];
-        point_arr[d] = a_ref[d] + static_cast<double>(idx) * h_ref[d];
+        point[d] = a_ref[d] + static_cast<double>(idx) * h_ref[d];
         int w = SimpsonCoeff(idx, static_cast<int>(n_ref[d]));
         w_prod *= static_cast<double>(w);
       }
 
-      // Создаём временный вектор только для вызова func_
-      std::vector<double> point(point_arr.begin(), point_arr.begin() + static_cast<ptrdiff_t>(dim_local));
       local_sum += coeff0 * w_prod * func_ref(point);
     } while (AdvanceIndicesFromLevel(indices, n_ref, 1, dim_local));
 
