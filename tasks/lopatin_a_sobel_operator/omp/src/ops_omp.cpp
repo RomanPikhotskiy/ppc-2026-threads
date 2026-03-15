@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include "lopatin_a_sobel_operator/common/include/common.hpp"
+#include "util/include/util.hpp"
 
 namespace lopatin_a_sobel_operator {
 
@@ -38,7 +39,8 @@ bool LopatinASobelOperatorOMP::RunImpl() {
   const auto &input_data = input.pixels;
   auto &output = GetOutput();
 
-#pragma omp parallel for num_threads(ppc::util::GetNumThreads()) schedule(static)
+#pragma omp parallel for num_threads(ppc::util::GetNumThreads()) schedule(static) default(none) \
+    shared(kSobelX, kSobelY, input, input_data, output)
   for (std::size_t j = 1; j < h_ - 1; ++j) {  // processing only pixels with a full 3 x 3 neighborhood size
     for (std::size_t i = 1; i < w_ - 1; ++i) {
       int gx = 0;
