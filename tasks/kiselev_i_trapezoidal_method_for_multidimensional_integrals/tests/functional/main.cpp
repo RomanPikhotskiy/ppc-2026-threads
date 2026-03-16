@@ -181,7 +181,7 @@ const std::array<TestType, 15> kTestParam = {
     std::make_tuple(12, "exp1"), std::make_tuple(13, "exp2"), std::make_tuple(14, "exp3")};
 
 const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<KiselevITestTaskSEQ, InType>(kTestParam, PPC_SETTINGS_example_threads));
+    std::tuple_cat(ppc::util::AddFuncTask<KiselevITestTaskSEQ, InType>(kTestParam, PPC_SETTINGS_kiselev_i_trapezoidal_method_for_multidimensional_integrals));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
