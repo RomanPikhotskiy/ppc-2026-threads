@@ -14,7 +14,7 @@
 namespace zavyalov_a_compl_sparse_matr_mult {
 
 SparseMatrix ZavyalovAComplSparseMatrMultOMP::MultiplicateWithOmp(const SparseMatrix &matr_a,
-                                                                   const SparseMatrix &matr_b) {
+                                                                  const SparseMatrix &matr_b) {
   if (matr_a.width != matr_b.height) {
     throw std::invalid_argument("Incompatible matrix dimensions for multiplication");
   }
