@@ -44,9 +44,8 @@ TEST_P(SosninaARunPerfTestRadixSort, RunPerfRadixSort) {
 
 namespace {
 
-const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, SosninaATestTaskSEQ, SosninaATestTaskOMP>(
-        PPC_SETTINGS_sosnina_a_radix_simple_merge);
+const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, SosninaATestTaskSEQ, SosninaATestTaskOMP>(
+    PPC_SETTINGS_sosnina_a_radix_simple_merge);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
