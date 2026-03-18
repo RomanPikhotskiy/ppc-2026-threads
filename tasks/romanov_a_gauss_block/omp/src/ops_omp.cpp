@@ -1,5 +1,7 @@
 #include "romanov_a_gauss_block/omp/include/ops_omp.hpp"
 
+#include <omp.h>
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -26,6 +28,9 @@ bool RomanovAGaussBlockOMP::PreProcessingImpl() {
 }
 
 namespace {
+
+constexpr int block_size = 32;
+
 int ApplyKernel(const std::vector<uint8_t> &img, int row, int col, int channel, int width, int height,
                 const std::array<std::array<int, 3>, 3> &kernel) {
   int sum = 0;
@@ -41,19 +46,13 @@ int ApplyKernel(const std::vector<uint8_t> &img, int row, int col, int channel, 
   }
   return sum;
 }
-}  // namespace
 
-bool RomanovAGaussBlockOMP::RunImpl() {
-  const int width = std::get<0>(GetInput());
-  const int height = std::get<1>(GetInput());
-
-  const std::vector<uint8_t> initial_picture = std::get<2>(GetInput());
-  std::vector<uint8_t> result_picture(static_cast<size_t>(height * width * 3));
-
+void ProcessFullBlock(const std::vector<uint8_t> &initial_picture, std::vector<uint8_t> &result_picture, int width,
+                      int height, int start_row, int start_col) {
   const std::array<std::array<int, 3>, 3> kernel = {{{1, 2, 1}, {2, 4, 2}, {1, 2, 1}}};
 
-  for (int row = 0; row < height; ++row) {
-    for (int col = 0; col < width; ++col) {
+  for (int row = start_row; row < start_row + block_size; ++row) {
+    for (int col = start_col; col < start_col + block_size; ++col) {
       for (int channel = 0; channel < 3; ++channel) {
         int sum = ApplyKernel(initial_picture, row, col, channel, width, height, kernel);
         int result_value = (sum + 8) / 16;
@@ -63,6 +62,56 @@ bool RomanovAGaussBlockOMP::RunImpl() {
       }
     }
   }
+}
+
+void ProcessPartBlock(const std::vector<uint8_t> &initial_picture, std::vector<uint8_t> &result_picture, int width,
+                      int height, int start_row, int start_col) {
+  const std::array<std::array<int, 3>, 3> kernel = {{{1, 2, 1}, {2, 4, 2}, {1, 2, 1}}};
+
+  const int end_row = std::min(height, start_row + block_size);
+  const int end_col = std::min(width, start_col + block_size);
+
+  for (int row = start_row; row < end_row; ++row) {
+    for (int col = start_col; col < end_col; ++col) {
+      for (int channel = 0; channel < 3; ++channel) {
+        int sum = ApplyKernel(initial_picture, row, col, channel, width, height, kernel);
+        int result_value = (sum + 8) / 16;
+        result_value = std::clamp(result_value, 0, 255);
+        auto idx = ((static_cast<size_t>(row) * width + col) * 3) + channel;
+        result_picture[idx] = static_cast<uint8_t>(result_value);
+      }
+    }
+  }
+}
+
+}  // namespace
+
+bool RomanovAGaussBlockOMP::RunImpl() {
+  const int width = std::get<0>(GetInput());
+  const int height = std::get<1>(GetInput());
+
+  const std::vector<uint8_t> &initial_picture = std::get<2>(GetInput());
+  std::vector<uint8_t> result_picture(static_cast<size_t>(height * width * 3));
+
+#pragma omp parallel for schedule(static) default(none) shared(initial_picture, result_picture, width, height)
+  for (int start_row = 0; start_row < (height + 1 - block_size); start_row += block_size) {
+    for (int start_col = 0; start_col < (width + 1 - block_size); start_col += block_size) {
+      ProcessFullBlock(initial_picture, result_picture, width, height, start_row, start_col);
+    }
+  }
+
+#pragma omp parallel for schedule(static) default(none) shared(initial_picture, result_picture, width, height)
+  for (int start_row = 0; start_row < (height + 1 - block_size); start_row += block_size) {
+    ProcessPartBlock(initial_picture, result_picture, width, height, start_row, (width - width % block_size));
+  }
+
+#pragma omp parallel for schedule(static) default(none) shared(initial_picture, result_picture, width, height)
+  for (int start_col = 0; start_col < (width + 1 - block_size); start_col += block_size) {
+    ProcessPartBlock(initial_picture, result_picture, width, height, height - (height % block_size), start_col);
+  }
+
+  ProcessPartBlock(initial_picture, result_picture, width, height, height - (height % block_size),
+                   width - (width % block_size));
 
   GetOutput() = result_picture;
   return true;
