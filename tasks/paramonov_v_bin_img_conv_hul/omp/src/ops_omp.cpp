@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
-#include <mutex>
 #include <stack>
 #include <utility>
 #include <vector>
@@ -105,10 +104,7 @@ void ConvexHullOMP::ExtractConnectedComponents() {
   const size_t total_pixels = static_cast<size_t>(rows) * static_cast<size_t>(cols);
 
   std::vector<bool> visited(total_pixels, false);
-
   std::vector<std::vector<PixelPoint>> components;
-  std::mutex components_mutex;
-
   std::vector<std::pair<int, int>> start_points;
 
 #pragma omp parallel for
