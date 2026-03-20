@@ -29,7 +29,7 @@ double customRound(double value, double h) {
 }
 
 double count(double left_border, double right_border, double simpson_factor,
-             std::vector<std::pair<double, double>> &limits, std::vector<double> &actual_step,
+             const std::vector<std::pair<double, double>> &limits, const std::vector<double> &actual_step,
 
              std::function<double(const std::vector<double> &)> function) {
   std::stack<std::pair<std::vector<double>, double>> stack;
