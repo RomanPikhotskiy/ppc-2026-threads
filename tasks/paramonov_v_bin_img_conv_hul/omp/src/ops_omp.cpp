@@ -61,7 +61,7 @@ bool ConvexHullOMP::PostProcessingImpl() {
 void ConvexHullOMP::BinarizeImage(uint8_t threshold) {
   const size_t size = working_image_.pixels.size();
 
-#pragma omp parallel for
+#pragma omp parallel for default(none) shared(working_image_, threshold, size)
   for (size_t i = 0; i < size; ++i) {
     working_image_.pixels[i] = working_image_.pixels[i] > threshold ? uint8_t{255} : uint8_t{0};
   }
@@ -107,7 +107,7 @@ void ConvexHullOMP::ExtractConnectedComponents() {
   std::vector<std::vector<PixelPoint>> components;
   std::vector<std::pair<int, int>> start_points;
 
-#pragma omp parallel for
+#pragma omp parallel for default(none) shared(rows, cols, working_image_, visited, start_points)
   for (int row = 0; row < rows; ++row) {
     for (int col = 0; col < cols; ++col) {
       size_t idx = PixelIndex(row, col, cols);
@@ -123,9 +123,11 @@ void ConvexHullOMP::ExtractConnectedComponents() {
     }
   }
 
-#pragma omp parallel for
+#pragma omp parallel for default(none) shared(start_points, total_pixels, rows, cols, working_image_, components)
   for (size_t i = 0; i < start_points.size(); ++i) {
-    const auto &[start_row, start_col] = start_points[i];
+    const auto &start_point = start_points[i];
+    int start_row = start_point.first;
+    int start_col = start_point.second;
 
     std::vector<bool> local_visited(total_pixels, false);
     std::vector<PixelPoint> component;
