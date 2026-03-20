@@ -2,6 +2,7 @@
 
 #include <omp.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <vector>
 
@@ -71,18 +72,18 @@ bool ChetverikovaEShellSortSimpleMergeOMP::RunImpl() {
 
 #pragma omp parallel for default(none) shared(output, ind_parts, counts_parts) schedule(static)
   for (size_t i = 0; i < counts_parts; ++i) {
-    std::ptrdiff_t left = static_cast<std::ptrdiff_t>(ind_parts[i]);
-    std::ptrdiff_t right = static_cast<std::ptrdiff_t>(ind_parts[i + 1]);
+    auto left = static_cast<std::ptrdiff_t>(ind_parts[i]);
+    auto right = static_cast<std::ptrdiff_t>(ind_parts[i + 1]);
 
     std::vector<int> temp(output.begin() + left, output.begin() + right);
     ShellSort(temp);
     std::copy(temp.begin(), temp.end(), output.begin() + left);
   }
 
-  std::ptrdiff_t current_end = static_cast<std::ptrdiff_t>(ind_parts[1]);
+  auto current_end = static_cast<std::ptrdiff_t>(ind_parts[1]);
 
   for (size_t i = 1; i < counts_parts; ++i) {
-    std::ptrdiff_t next_end = static_cast<std::ptrdiff_t>(ind_parts[i + 1]);
+    auto next_end = static_cast<std::ptrdiff_t>(ind_parts[i + 1]);
     std::inplace_merge(output.begin(), output.begin() + current_end, output.begin() + next_end);
     current_end = next_end;
   }
