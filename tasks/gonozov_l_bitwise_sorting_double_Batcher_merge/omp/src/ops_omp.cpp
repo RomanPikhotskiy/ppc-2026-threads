@@ -109,7 +109,7 @@ void BatcherOddEvenMergeIterative(std::vector<double> &arr, size_t n) {
   n = std::min(n, arr.size());
   // Сначала сливаем блоки размером 1, потом 2, потом 4 и т.д.
   for (size_t len = 2; len <= n; len *= 2) {
-    #pragma omp parallel for
+#pragma omp parallel for
     for (size_t i = 0; i < n; i += len) {
       MergingHalves(arr, i, len);
     }
@@ -139,14 +139,14 @@ void HybridSortDouble(std::vector<double> &data) {
   std::vector<double> left(data.begin(), data.begin() + static_cast<ptrdiff_t>(mid));
   std::vector<double> right(data.begin() + static_cast<ptrdiff_t>(mid), data.end());
 
-  // Сортируем каждую половину поразрядно
-  #pragma omp parallel sections
+// Сортируем каждую половину поразрядно
+#pragma omp parallel sections
   {
-    #pragma omp section
+#pragma omp section
     {
       RadixSortDouble(left);
     }
-    #pragma omp section
+#pragma omp section
     {
       RadixSortDouble(right);
     }
