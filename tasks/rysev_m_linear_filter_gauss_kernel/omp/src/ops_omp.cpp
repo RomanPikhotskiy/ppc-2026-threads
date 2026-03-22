@@ -92,13 +92,18 @@ bool RysevMGaussFilterOMP::PreProcessingImpl() {
 }
 
 void RysevMGaussFilterOMP::ApplyKernelToChannel(int channel, int rows, int cols) {
-#pragma omp parallel for default(none) shared(rows, cols, channels_, input_image_, output_image_, channel)
-  for (int row = 0; row < rows; ++row) {
+  const auto &input = input_image_;
+  auto &output = output_image_;
+  int channels = channels_;
+
+  int row = 0;
+#pragma omp parallel for default(none) shared(rows, cols, channels, input, output, channel) private(row)
+  for (row = 0; row < rows; ++row) {
     for (int col = 0; col < cols; ++col) {
-      float sum = ComputePixelValue(row, col, channel, rows, cols, channels_, input_image_);
+      float sum = ComputePixelValue(row, col, channel, rows, cols, channels, input);
       std::size_t out_idx = (static_cast<std::size_t>(row) * cols) + col;
-      out_idx = (out_idx * channels_) + channel;
-      output_image_[out_idx] = static_cast<uint8_t>(std::clamp(sum, 0.0F, 255.0F));
+      out_idx = (out_idx * channels) + channel;
+      output[out_idx] = static_cast<uint8_t>(std::clamp(sum, 0.0F, 255.0F));
     }
   }
 }
