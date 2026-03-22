@@ -1,11 +1,11 @@
 #include "zorin_d_strassen_alg_matrix_seq/tbb/include/ops_tbb.hpp"
 
+#include <oneapi/tbb/global_control.h>
+#include <oneapi/tbb/parallel_invoke.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <vector>
-
-#include <oneapi/tbb/global_control.h>
-#include <oneapi/tbb/parallel_invoke.h>
 
 #include "util/include/util.hpp"
 #include "zorin_d_strassen_alg_matrix_seq/common/include/common.hpp"
@@ -180,13 +180,13 @@ void StrassenTopTbb(const double *a, std::size_t a_stride, const double *b, std:
   std::vector<double> m7;
 
   oneapi::tbb::parallel_invoke(
-      [&] { ComputeProduct(a11, a_stride, a22, a_stride, 1.0, b11, b_stride, b22, b_stride, 1.0, m1, half); },
-      [&] { ComputeProductSingleLeft(a21, a_stride, a22, a_stride, 1.0, b11, b_stride, m2, half); },
-      [&] { ComputeProductSingle(a11, a_stride, b12, b_stride, b22, b_stride, -1.0, m3, half); },
-      [&] { ComputeProductSingle(a22, a_stride, b21, b_stride, b11, b_stride, -1.0, m4, half); },
-      [&] { ComputeProductSingleLeft(a11, a_stride, a12, a_stride, 1.0, b22, b_stride, m5, half); },
-      [&] { ComputeProduct(a21, a_stride, a11, a_stride, -1.0, b11, b_stride, b12, b_stride, 1.0, m6, half); },
-      [&] { ComputeProduct(a12, a_stride, a22, a_stride, -1.0, b21, b_stride, b22, b_stride, 1.0, m7, half); });
+      [&] { ComputeProduct(a11, a_stride, a22, a_stride, 1.0, b11, b_stride, b22, b_stride, 1.0, m1, half); }, [&] {
+    ComputeProductSingleLeft(a21, a_stride, a22, a_stride, 1.0, b11, b_stride, m2, half);
+  }, [&] { ComputeProductSingle(a11, a_stride, b12, b_stride, b22, b_stride, -1.0, m3, half); }, [&] {
+    ComputeProductSingle(a22, a_stride, b21, b_stride, b11, b_stride, -1.0, m4, half);
+  }, [&] { ComputeProductSingleLeft(a11, a_stride, a12, a_stride, 1.0, b22, b_stride, m5, half); }, [&] {
+    ComputeProduct(a21, a_stride, a11, a_stride, -1.0, b11, b_stride, b12, b_stride, 1.0, m6, half);
+  }, [&] { ComputeProduct(a12, a_stride, a22, a_stride, -1.0, b21, b_stride, b22, b_stride, 1.0, m7, half); });
 
   CombineQuadrants(m1, m2, m3, m4, m5, m6, m7, c, c_stride, half);
 }
