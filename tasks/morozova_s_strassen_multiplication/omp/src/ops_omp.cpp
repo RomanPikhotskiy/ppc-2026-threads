@@ -16,10 +16,15 @@ Matrix AddMatrixImpl(const Matrix &a, const Matrix &b) {
   int n = a.size;
   Matrix result(n);
 
-#pragma omp parallel for default(none) collapse(2) schedule(static) shared(a, b, result, n)
-  for (int i = 0; i < n; ++i) {
-    for (int j = 0; j < n; ++j) {
-      result(i, j) = a(i, j) + b(i, j);
+#pragma omp parallel
+  {
+    int thread_id = omp_get_thread_num();
+    int num_threads = omp_get_num_threads();
+
+    for (int i = thread_id; i < n; i += num_threads) {
+      for (int j = 0; j < n; ++j) {
+        result(i, j) = a(i, j) + b(i, j);
+      }
     }
   }
 
@@ -30,10 +35,15 @@ Matrix SubtractMatrixImpl(const Matrix &a, const Matrix &b) {
   int n = a.size;
   Matrix result(n);
 
-#pragma omp parallel for default(none) collapse(2) schedule(static) shared(a, b, result, n)
-  for (int i = 0; i < n; ++i) {
-    for (int j = 0; j < n; ++j) {
-      result(i, j) = a(i, j) - b(i, j);
+#pragma omp parallel
+  {
+    int thread_id = omp_get_thread_num();
+    int num_threads = omp_get_num_threads();
+
+    for (int i = thread_id; i < n; i += num_threads) {
+      for (int j = 0; j < n; ++j) {
+        result(i, j) = a(i, j) - b(i, j);
+      }
     }
   }
 
@@ -44,14 +54,19 @@ Matrix MultiplyStandardImpl(const Matrix &a, const Matrix &b) {
   int n = a.size;
   Matrix result(n);
 
-#pragma omp parallel for default(none) collapse(2) schedule(dynamic, 1) shared(a, b, result, n)
-  for (int i = 0; i < n; ++i) {
-    for (int j = 0; j < n; ++j) {
-      double sum = 0.0;
-      for (int k = 0; k < n; ++k) {
-        sum += a(i, k) * b(k, j);
+#pragma omp parallel
+  {
+    int thread_id = omp_get_thread_num();
+    int num_threads = omp_get_num_threads();
+
+    for (int i = thread_id; i < n; i += num_threads) {
+      for (int j = 0; j < n; ++j) {
+        double sum = 0.0;
+        for (int k = 0; k < n; ++k) {
+          sum += a(i, k) * b(k, j);
+        }
+        result(i, j) = sum;
       }
-      result(i, j) = sum;
     }
   }
 
@@ -77,13 +92,18 @@ Matrix MergeMatricesImpl(const Matrix &m11, const Matrix &m12, const Matrix &m21
   int n = 2 * half;
   Matrix result(n);
 
-#pragma omp parallel for default(none) collapse(2) schedule(static) shared(m11, m12, m21, m22, result, half)
-  for (int i = 0; i < half; ++i) {
-    for (int j = 0; j < half; ++j) {
-      result(i, j) = m11(i, j);
-      result(i, j + half) = m12(i, j);
-      result(i + half, j) = m21(i, j);
-      result(i + half, j + half) = m22(i, j);
+#pragma omp parallel
+  {
+    int thread_id = omp_get_thread_num();
+    int num_threads = omp_get_num_threads();
+
+    for (int i = thread_id; i < half; i += num_threads) {
+      for (int j = 0; j < half; ++j) {
+        result(i, j) = m11(i, j);
+        result(i, j + half) = m12(i, j);
+        result(i + half, j) = m21(i, j);
+        result(i + half, j + half) = m22(i, j);
+      }
     }
   }
 
@@ -94,10 +114,12 @@ Matrix MultiplyStandardParallelImpl(const Matrix &a, const Matrix &b) {
   int n = a.size;
   Matrix result(n);
 
-#pragma omp parallel default(none) shared(a, b, result, n)
+#pragma omp parallel
   {
-#pragma omp for collapse(2) schedule(dynamic, 1)
-    for (int i = 0; i < n; ++i) {
+    int thread_id = omp_get_thread_num();
+    int num_threads = omp_get_num_threads();
+
+    for (int i = thread_id; i < n; i += num_threads) {
       for (int j = 0; j < n; ++j) {
         double sum = 0.0;
         for (int k = 0; k < n; ++k) {
