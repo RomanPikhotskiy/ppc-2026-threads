@@ -5,7 +5,6 @@
 #include <tbb/tbb.h>
 
 #include <complex>
-#include <util/include/util.hpp>
 #include <vector>
 
 #include "tbb/parallel_for.h"
